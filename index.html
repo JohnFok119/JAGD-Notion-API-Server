@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notion API Test Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .result {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            border-left: 4px solid #667eea;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .result pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #333;
+        }
+        
+        .success {
+            border-left-color: #10b981;
+        }
+        
+        .error {
+            border-left-color: #ef4444;
+            background: #fee;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-box code {
+            background: #dbeafe;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔌 Notion API Test Dashboard</h1>
+            <p>Test your serverless Notion API endpoints</p>
+        </div>
+        
+        <!-- Test Connection Card -->
+        <div class="card">
+            <h2>1️⃣ Test Connection</h2>
+            <div class="info-box">
+                <strong>Endpoint:</strong> <code>/api/notion/test</code><br>
+                Tests if the API can connect to your Notion database.
+            </div>
+            <div class="button-group">
+                <button onclick="testConnection()" id="testBtn">
+                    🧪 Test Connection
+                </button>
+            </div>
+            <div id="testResult"></div>
+        </div>
+        
+        <!-- Roadmap Data Card -->
+        <div class="card">
+            <h2>2️⃣ Fetch Roadmap Data</h2>
+            <div class="info-box">
+                <strong>Endpoint:</strong> <code>/api/notion/roadmap</code><br>
+                Fetches all roadmap data from your Notion database.
+            </div>
+            <div class="button-group">
+                <button onclick="fetchAllRoadmap()" id="allBtn">
+                    📊 Fetch All Projects
+                </button>
+                <button onclick="fetchProjectRoadmap()" id="projectBtn">
+                    🎯 Fetch scholarlens-ai
+                </button>
+            </div>
+            <div id="roadmapResult"></div>
+        </div>
+        
+        <!-- API Info Card -->
+        <div class="card">
+            <h2>ℹ️ API Information</h2>
+            <div class="info-box">
+                <p><strong>Base URL:</strong> <code>https://jagdnotionapiserver.vercel.app</code></p>
+                <p style="margin-top: 10px;"><strong>Available Endpoints:</strong></p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li><code>GET /api/notion/test</code> - Test connection</li>
+                    <li><code>GET /api/notion/roadmap</code> - Get all roadmap data</li>
+                    <li><code>GET /api/notion/roadmap?projectSlug=PROJECT_NAME</code> - Get specific project</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://jagdnotionapiserver.vercel.app';
+        
+        function showLoading(buttonId) {
+            const btn = document.getElementById(buttonId);
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Loading...';
+        }
+        
+        function hideLoading(buttonId, text) {
+            const btn = document.getElementById(buttonId);
+            btn.disabled = false;
+            btn.innerHTML = text;
+        }
+        
+        function displayResult(elementId, data, isSuccess) {
+            const element = document.getElementById(elementId);
+            const statusClass = isSuccess ? 'success' : 'error';
+            const statusBadge = isSuccess ? 
+                '<span class="status-badge status-success">✓ Success</span>' : 
+                '<span class="status-badge status-error">✗ Error</span>';
+            
+            element.innerHTML = `
+                <div class="result ${statusClass}">
+                    ${statusBadge}
+                    <strong>${new Date().toLocaleTimeString()}</strong>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        async function testConnection() {
+            showLoading('testBtn');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/notion/test`);
+                const data = await response.json();
+                
+                displayResult('testResult', data, data.success);
+            } catch (error) {
+                displayResult('testResult', {
+                    success: false,
+                    error: error.message,
+                    message: 'Failed to connect to API'
+                }, false);
+            } finally {
+                hideLoading('testBtn', '🧪 Test Connection');
+            }
+        }
+        
+        async function fetchAllRoadmap() {
+            showLoading('allBtn');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/notion/roadmap`);
+                const data = await response.json();
+                
+                displayResult('roadmapResult', data, data.success);
+            } catch (error) {
+                displayResult('roadmapResult', {
+                    success: false,
+                    error: error.message,
+                    message: 'Failed to fetch roadmap data'
+                }, false);
+            } finally {
+                hideLoading('allBtn', '📊 Fetch All Projects');
+            }
+        }
+        
+        async function fetchProjectRoadmap() {
+            showLoading('projectBtn');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/notion/roadmap?projectSlug=scholarlens-ai`);
+                const data = await response.json();
+                
+                displayResult('roadmapResult', data, data.success);
+            } catch (error) {
+                displayResult('roadmapResult', {
+                    success: false,
+                    error: error.message,
+                    message: 'Failed to fetch project roadmap'
+                }, false);
+            } finally {
+                hideLoading('projectBtn', '🎯 Fetch scholarlens-ai');
+            }
+        }
+    </script>
+</body>
+</html>
+
