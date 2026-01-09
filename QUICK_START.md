@@ -46,11 +46,11 @@ Once deployed:
 1. Click **"Settings"** tab
 2. Click **"Environment Variables"**
 3. Add:
-   - Name: `VITE_NOTION_API_KEY`
+   - Name: `NOTION_API_KEY`
    - Value: `secret_your_notion_token`
    - Click **"Add"**
 4. Add:
-   - Name: `VITE_NOTION_DATABASE_ID`
+   - Name: `NOTION_DATABASE_ID`
    - Value: `your_database_id`
    - Click **"Add"**
 5. Click **"Deployments"** tab → **"Redeploy"** button

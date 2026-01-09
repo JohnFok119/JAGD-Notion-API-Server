@@ -9,18 +9,18 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config({ path: '.env.local' });
 
-const API_KEY = process.env.VITE_NOTION_API_KEY;
-const DATABASE_ID = process.env.VITE_NOTION_DATABASE_ID;
+const API_KEY = process.env.NOTION_API_KEY;
+const DATABASE_ID = process.env.NOTION_DATABASE_ID;
 
 console.log('🔍 Testing Notion API Connection...\n');
 
 if (!API_KEY) {
-  console.error('❌ VITE_NOTION_API_KEY not found in .env.local');
+  console.error('❌ NOTION_API_KEY not found in .env.local');
   process.exit(1);
 }
 
 if (!DATABASE_ID) {
-  console.error('❌ VITE_NOTION_DATABASE_ID not found in .env.local');
+  console.error('❌ NOTION_DATABASE_ID not found in .env.local');
   process.exit(1);
 }
 

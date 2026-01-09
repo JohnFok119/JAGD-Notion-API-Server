@@ -19,7 +19,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const DATABASE_ID = process.env.VITE_NOTION_DATABASE_ID;
+    const DATABASE_ID = process.env.NOTION_DATABASE_ID;
 
     if (!DATABASE_ID) {
       return res.status(500).json({
@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
 
     // Initialize Notion client
     const notion = new Client({
-      auth: process.env.VITE_NOTION_API_KEY,
+      auth: process.env.NOTION_API_KEY,
     });
 
     const response = await notion.databases.query({

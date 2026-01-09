@@ -23,8 +23,8 @@ Serverless API backend for fetching roadmap data from Notion.
 
 4. **Add Environment Variables** on Vercel:
    - Settings → Environment Variables
-   - Add `VITE_NOTION_API_KEY` = your Notion integration token
-   - Add `VITE_NOTION_DATABASE_ID` = your Notion database ID
+   - Add `NOTION_API_KEY` = your Notion integration token
+   - Add `NOTION_DATABASE_ID` = your Notion database ID
    - Redeploy
 
 5. **Get your API URL**:
@@ -44,8 +44,8 @@ Serverless API backend for fetching roadmap data from Notion.
 
 2. **Create `.env.local`**:
    ```
-   VITE_NOTION_API_KEY=secret_your_token
-   VITE_NOTION_DATABASE_ID=your_database_id
+   NOTION_API_KEY=secret_your_token
+   NOTION_DATABASE_ID=your_database_id
    ```
 
 3. **Test connection**:
@@ -127,8 +127,8 @@ notion-api-backend/
 
 | Variable | Description |
 |----------|-------------|
-| `VITE_NOTION_API_KEY` | Your Notion integration token (starts with `secret_`) |
-| `VITE_NOTION_DATABASE_ID` | Your Notion database ID (32 characters) |
+| `NOTION_API_KEY` | Your Notion integration token (starts with `secret_`) |
+| `NOTION_DATABASE_ID` | Your Notion database ID (32 characters) |
 
 ---
 
