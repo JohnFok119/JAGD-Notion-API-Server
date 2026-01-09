@@ -52,8 +52,8 @@ After deployment, you need to add your Notion credentials:
 
 | Variable Name | Value |
 |---------------|-------|
-| `VITE_NOTION_API_KEY` | `secret_your_notion_token_here` |
-| `VITE_NOTION_DATABASE_ID` | `your_database_id_here` |
+| `NOTION_API_KEY` | `secret_your_notion_token_here` |
+| `NOTION_DATABASE_ID` | `your_database_id_here` |
 
 4. Click **"Save"**
 5. **Redeploy** the project for env vars to take effect
