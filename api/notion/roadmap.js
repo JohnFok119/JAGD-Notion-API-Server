@@ -66,8 +66,8 @@ module.exports = async (req, res) => {
       const phase = props.Phase?.select?.name || '';
       const date = props.Date?.rich_text?.[0]?.plain_text || '';
       
-      // Get raw status from Notion
-      const rawStatus = props.Status?.select?.name || 'Not Started';
+      // Get raw status from Notion (handle both Status and Select property types)
+      const rawStatus = props.Status?.status?.name || props.Status?.select?.name || 'Not Started';
       const notionStatus = rawStatus.toLowerCase().trim();
       
       // Map Notion status to our format
