@@ -107,11 +107,23 @@ module.exports = async (req, res) => {
       projectsMap[project][phase].items.push(item);
     });
 
-    // Convert to array format
+    // Convert to array format and sort phases by number
     const result = {};
     Object.entries(projectsMap).forEach(([project, phases]) => {
-      result[project] = Object.values(phases);
-      console.log(`📦 Project: ${project} → ${Object.keys(phases).length} phases`);
+      // Sort phases by extracting phase number (e.g., "Phase 1" → 1)
+      const sortedPhases = Object.entries(phases)
+        .sort((a, b) => {
+          // Extract phase numbers from the phase keys
+          const getPhaseNumber = (phaseKey) => {
+            const match = phaseKey.match(/(\d+)/);
+            return match ? parseInt(match[1]) : 999; // Put phases without numbers at the end
+          };
+          return getPhaseNumber(a[0]) - getPhaseNumber(b[0]);
+        })
+        .map(([key, value]) => value);
+      
+      result[project] = sortedPhases;
+      console.log(`📦 Project: ${project} → ${sortedPhases.length} phases (sorted)`);
     });
 
     console.log(`✅ Returning grouped roadmap data`);
