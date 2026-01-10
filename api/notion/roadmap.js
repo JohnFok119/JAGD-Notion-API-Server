@@ -65,13 +65,16 @@ module.exports = async (req, res) => {
       const phaseName = props['Phase Name']?.rich_text?.[0]?.plain_text || '';
       const phase = props.Phase?.select?.name || '';
       const date = props.Date?.rich_text?.[0]?.plain_text || '';
-      const notionStatus = props.Status?.select?.name?.toLowerCase() || 'not started';
+      
+      // Get raw status from Notion
+      const rawStatus = props.Status?.select?.name || 'Not Started';
+      const notionStatus = rawStatus.toLowerCase().trim();
       
       // Map Notion status to our format
       let status;
-      if (notionStatus.includes('progress')) {
+      if (notionStatus.includes('progress') || notionStatus.includes('in progress')) {
         status = 'in-progress';
-      } else if (notionStatus === 'completed') {
+      } else if (notionStatus.includes('completed') || notionStatus.includes('complete')) {
         status = 'completed';
       } else {
         status = 'not-started';
@@ -83,7 +86,7 @@ module.exports = async (req, res) => {
         description: props.Description?.rich_text?.[0]?.plain_text || '',
       };
 
-      console.log(`  ✓ ${item.name} [${status}] → ${project} / ${phase}`);
+      console.log(`  ✓ ${item.name} [Raw: "${rawStatus}" → Mapped: "${status}"] → ${project} / ${phase}`);
 
       // Initialize project if doesn't exist
       if (!projectsMap[project]) {
@@ -95,7 +98,6 @@ module.exports = async (req, res) => {
         projectsMap[project][phase] = {
           id: `${project}-${phase.toLowerCase().replace(/\s+/g, '-')}`,
           name: phaseName,
-          status: 'planned', // Will be updated based on items
           date: date,
           items: [],
         };
@@ -103,23 +105,6 @@ module.exports = async (req, res) => {
 
       // Add item to phase
       projectsMap[project][phase].items.push(item);
-    });
-
-    // Determine phase status based on items
-    Object.values(projectsMap).forEach(phases => {
-      Object.values(phases).forEach(phase => {
-        const allCompleted = phase.items.every(item => item.status === 'completed');
-        const someInProgress = phase.items.some(item => item.status === 'in-progress');
-        const someCompleted = phase.items.some(item => item.status === 'completed');
-        
-        if (allCompleted) {
-          phase.status = 'completed';
-        } else if (someInProgress || someCompleted) {
-          phase.status = 'in-progress';
-        } else {
-          phase.status = 'planned';
-        }
-      });
     });
 
     // Convert to array format
