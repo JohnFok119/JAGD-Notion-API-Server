@@ -170,6 +170,7 @@
             border-left: 4px solid #667eea;
             max-height: 600px;
             overflow-y: auto;
+            position: relative;
         }
         
         .result pre {
@@ -179,6 +180,40 @@
             font-size: 0.9rem;
             line-height: 1.5;
             color: #333;
+            margin-top: 10px;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+            transform: translateY(-1px);
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
         }
         
         .success {
@@ -499,13 +534,46 @@
                 '<span class="status-badge status-success">✓ Success</span>' : 
                 '<span class="status-badge status-error">✗ Error</span>';
             
+            const jsonString = JSON.stringify(data, null, 2);
+            const uniqueId = `copy-${elementId}-${Date.now()}`;
+            
             element.innerHTML = `
                 <div class="result ${statusClass}">
-                    ${statusBadge}
-                    <strong>${new Date().toLocaleTimeString()}</strong>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <button class="copy-btn" onclick="copyToClipboard('${uniqueId}', this)" title="Copy JSON to clipboard">
+                        📋 Copy
+                    </button>
+                    <div class="result-header">
+                        ${statusBadge}
+                        <strong>${new Date().toLocaleTimeString()}</strong>
+                    </div>
+                    <pre id="${uniqueId}">${jsonString}</pre>
                 </div>
             `;
+        }
+
+        async function copyToClipboard(preId, button) {
+            const preElement = document.getElementById(preId);
+            const text = preElement.textContent;
+            
+            try {
+                await navigator.clipboard.writeText(text);
+                
+                // Visual feedback
+                const originalText = button.innerHTML;
+                button.innerHTML = '✓ Copied!';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                button.innerHTML = '✗ Failed';
+                setTimeout(() => {
+                    button.innerHTML = '📋 Copy';
+                }, 2000);
+            }
         }
 
         // ========== NOTION API TESTS ==========
