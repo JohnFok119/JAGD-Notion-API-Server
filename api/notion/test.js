@@ -19,12 +19,10 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const DATABASE_ID = process.env.NOTION_DATABASE_ID;
-
-    if (!DATABASE_ID) {
+    if (!process.env.NOTION_API_KEY) {
       return res.status(500).json({
         success: false,
-        message: 'Database ID not configured',
+        message: 'NOTION_API_KEY not configured',
       });
     }
 
@@ -33,14 +31,17 @@ module.exports = async (req, res) => {
       auth: process.env.NOTION_API_KEY,
     });
 
-    const response = await notion.databases.query({
-      database_id: DATABASE_ID,
-    });
+    // Test connection by getting bot info
+    const botInfo = await notion.users.me();
 
     res.status(200).json({
       success: true,
-      message: `Successfully connected! Found ${response.results.length} items in database.`,
-      count: response.results.length,
+      message: 'Successfully connected to Notion workspace!',
+      data: {
+        botName: botInfo.name || 'Integration',
+        type: botInfo.type,
+        workspaceAccess: 'Connected',
+      },
     });
   } catch (error) {
     console.error('Notion API Error:', error);
