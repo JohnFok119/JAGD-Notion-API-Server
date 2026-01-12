@@ -84,7 +84,7 @@ Test connection to Notion database.
 ```
 
 #### GET `/api/notion/roadmap?projectSlug=CodeLens`
-Fetch roadmap data for a specific project.
+Fetch roadmap data for a specific project (legacy structure: Phases → Items).
 
 **Query Parameters:**
 - `projectSlug` (required): Project identifier (e.g., "CodeLens")
@@ -109,6 +109,49 @@ Fetch roadmap data for a specific project.
   ]
 }
 ```
+
+#### GET `/api/notion/sprints?projectSlug=CodeLens`
+Fetch sprint data with three-level hierarchy (Sprint Weeks → Epics → Tickets).
+
+**Query Parameters:**
+- `projectSlug` (required): Project identifier (e.g., "CodeLens")
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "sprint-1",
+      "name": "Sprint 1: Setting Up Environment",
+      "sprintNumber": 1,
+      "startDate": "2026-01-12",
+      "endDate": "2026-01-18",
+      "status": "in-progress",
+      "epics": [
+        {
+          "id": "epic-cicd",
+          "name": "CI/CD & Operations",
+          "status": "in-progress",
+          "description": "Continuous Integration/Delivery/Deployment",
+          "priority": "High",
+          "tickets": [
+            {
+              "id": "ticket-001",
+              "name": "[Ticket-001] - Fork & Clean VSCode Repo",
+              "status": "not-started",
+              "assignee": "Johnny",
+              "storyPoints": 3
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Setup:** See `docs/SPRINT_SETUP.md` for complete setup instructions
 
 ---
 
@@ -226,7 +269,9 @@ JAGD-Notion-API-Server/
 ├── api/
 │   ├── notion/
 │   │   ├── test.js              # Notion health check
-│   │   └── roadmap.js           # Roadmap data endpoint
+│   │   ├── roadmap.js           # Roadmap data endpoint (legacy)
+│   │   ├── sprints.js           # Sprint/Epic/Ticket endpoint
+│   │   └── test-sprints.js      # Test sprint endpoint
 │   ├── github/
 │   │   ├── test.js              # GitHub health check
 │   │   ├── contributions.js     # User contributions
@@ -235,6 +280,8 @@ JAGD-Notion-API-Server/
 │       ├── test.js              # LeetCode health check
 │       └── stats.js             # User statistics
 ├── package.json                 # Dependencies
+├── docs/
+│   └── SPRINT_SETUP.md          # Sprint management setup guide
 ├── test-connection.js           # Test Notion API
 ├── test-github.js               # Test GitHub API
 ├── test-leetcode.js             # Test LeetCode API
@@ -254,7 +301,12 @@ JAGD-Notion-API-Server/
 | Variable | Description |
 |----------|-------------|
 | `NOTION_API_KEY` | Your Notion integration token (starts with `secret_`) |
-| `NOTION_CODELENS_DATABASE_ID` | CodeLens project database ID |
+| `NOTION_CODELENS_DATABASE_ID` | CodeLens project database ID (legacy roadmap) |
+| `NOTION_CODELENS_SPRINTS_DB_ID` | Sprint Weeks database ID (for `/api/notion/sprints`) |
+| `NOTION_CODELENS_EPICS_DB_ID` | Epics database ID (for `/api/notion/sprints`) |
+| `NOTION_CODELENS_ISSUES_DB_ID` | Issues database ID (for `/api/notion/sprints`) |
+
+**Note:** Sprint-related variables are only needed if using the sprint management endpoint. See `docs/SPRINT_SETUP.md` for setup instructions.
 
 ### GitHub
 | Variable | Description |

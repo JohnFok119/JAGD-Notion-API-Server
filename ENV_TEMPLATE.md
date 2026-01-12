@@ -5,7 +5,14 @@ Create a `.env.local` file with these variables for local development:
 ```bash
 # Notion API
 NOTION_API_KEY=secret_your_notion_integration_token_here
+
+# Notion - CodeLens Roadmap (Legacy/Old structure)
 NOTION_CODELENS_DATABASE_ID=your_codelens_database_id_here
+
+# Notion - CodeLens Sprint Management (Three databases)
+NOTION_CODELENS_SPRINTS_DB_ID=your_sprints_database_id_here
+NOTION_CODELENS_EPICS_DB_ID=your_epics_database_id_here
+NOTION_CODELENS_ISSUES_DB_ID=your_issues_database_id_here
 
 # GitHub - Main organization token
 GITHUB_API_TOKEN=ghp_your_main_token_here
