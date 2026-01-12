@@ -5,6 +5,16 @@
 
 const { Client } = require('@notionhq/client');
 
+// Helper to calculate seconds until midnight PST
+function getSecondsUntilMidnightPST() {
+  const now = new Date();
+  const pstOffset = -8 * 60;
+  const nowPST = new Date(now.getTime() + (pstOffset + now.getTimezoneOffset()) * 60000);
+  const tomorrowPST = new Date(nowPST);
+  tomorrowPST.setHours(24, 0, 0, 0);
+  return Math.floor((tomorrowPST - nowPST) / 1000);
+}
+
 module.exports = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -44,7 +54,6 @@ module.exports = async (req, res) => {
       database_id: DATABASE_ID,
     };
 
-
     const response = await notion.databases.query(queryOptions);
 
     console.log(`📊 Fetched ${response.results.length} items from Notion`);
@@ -54,15 +63,15 @@ module.exports = async (req, res) => {
 
     response.results.forEach((page) => {
       const props = page.properties;
-      
+
       const phaseName = props['Phase Name']?.rich_text?.[0]?.plain_text || '';
       const phase = props.Phase?.select?.name || '';
       const date = props.Date?.rich_text?.[0]?.plain_text || '';
-      
+
       // Get raw status from Notion (handle both Status and Select property types)
       const rawStatus = props.Status?.status?.name || props.Status?.select?.name || 'Not Started';
       const notionStatus = rawStatus.toLowerCase().trim();
-      
+
       // Map Notion status to our format
       let status;
       if (notionStatus.includes('progress') || notionStatus.includes('in progress')) {
@@ -110,6 +119,10 @@ module.exports = async (req, res) => {
 
     console.log(`📦 Fetched ${sortedPhases.length} phases for project: ${projectSlug}`);
 
+    // Cache until midnight PST
+    const secondsUntilMidnight = getSecondsUntilMidnightPST();
+    res.setHeader('Cache-Control', `s-maxage=${secondsUntilMidnight}, must-revalidate`);
+
     res.status(200).json({
       success: true,
       data: sortedPhases,
@@ -122,4 +135,3 @@ module.exports = async (req, res) => {
     });
   }
 };
-
