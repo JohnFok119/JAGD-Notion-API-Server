@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notion API Test Dashboard</title>
+    <title>JAGD API Test Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -19,7 +19,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
@@ -38,6 +38,44 @@
             font-size: 1.1rem;
             opacity: 0.9;
         }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tab {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
         
         .card {
             background: white;
@@ -51,6 +89,15 @@
             color: #333;
             margin-bottom: 15px;
             font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h3 {
+            color: #555;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
         }
         
         .button-group {
@@ -84,6 +131,21 @@
         button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            transform: none;
+        }
+
+        input {
+            padding: 10px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 300px;
+            max-width: 100%;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
         }
         
         .loading {
@@ -162,65 +224,249 @@
             font-family: monospace;
             color: #1e40af;
         }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .endpoint-card {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .icon {
+            font-size: 1.5rem;
+        }
+
+        .url-display {
+            background: #1f2937;
+            color: #10b981;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔌 Notion API Test Dashboard</h1>
-            <p>Test your serverless Notion API endpoints</p>
+            <h1>🔌 JAGD API Test Dashboard</h1>
+            <p>Test your Notion, GitHub, and LeetCode API endpoints</p>
         </div>
-        
-        <!-- Test Connection Card -->
-        <div class="card">
-            <h2>1️⃣ Test Connection</h2>
-            <div class="info-box">
-                <strong>Endpoint:</strong> <code>/api/notion/test</code><br>
-                Tests if the API can connect to your Notion database.
-            </div>
-            <div class="button-group">
-                <button onclick="testConnection()" id="testBtn">
-                    🧪 Test Connection
-                </button>
-            </div>
-            <div id="testResult"></div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('notion')">
+                📓 Notion API
+            </button>
+            <button class="tab" onclick="switchTab('github')">
+                🐙 GitHub API
+            </button>
+            <button class="tab" onclick="switchTab('leetcode')">
+                💻 LeetCode API
+            </button>
+            <button class="tab" onclick="switchTab('info')">
+                ℹ️ API Info
+            </button>
         </div>
-        
-        <!-- Roadmap Data Card -->
-        <div class="card">
-            <h2>2️⃣ Fetch Roadmap Data</h2>
-            <div class="info-box">
-                <strong>Endpoint:</strong> <code>/api/notion/roadmap</code><br>
-                Fetches all roadmap data from your Notion database.
+
+        <!-- Notion Tab -->
+        <div id="notion-tab" class="tab-content active">
+            <div class="card">
+                <h2><span class="icon">📓</span> Notion API</h2>
+                
+                <div class="info-box">
+                    <strong>Base URL:</strong> <code>/api/notion</code><br>
+                    Test your Notion database integration for roadmap data.
+                </div>
+
+                <div class="grid">
+                    <div class="endpoint-card">
+                        <h3>🧪 Test Connection</h3>
+                        <p style="color: #666; margin: 10px 0;">Verify Notion API connection</p>
+                        <div class="url-display">GET /api/notion/test</div>
+                        <button onclick="testNotion()" id="notionTestBtn">
+                            Run Test
+                        </button>
+                    </div>
+
+                    <div class="endpoint-card">
+                        <h3>📊 Fetch Roadmap</h3>
+                        <p style="color: #666; margin: 10px 0;">Get roadmap data for a project</p>
+                        <input type="text" id="notionProjectSlug" placeholder="Project slug (e.g., CodeLens)" value="CodeLens">
+                        <div class="url-display" style="margin-top: 10px;">GET /api/notion/roadmap?projectSlug=...</div>
+                        <button onclick="fetchNotionRoadmap()" id="notionRoadmapBtn">
+                            Fetch Roadmap
+                        </button>
+                    </div>
+                </div>
+
+                <div id="notionResult"></div>
             </div>
-            <div class="button-group">
-                <button onclick="fetchAllRoadmap()" id="allBtn">
-                    📊 Fetch All Projects
-                </button>
-                <button onclick="fetchProjectRoadmap()" id="projectBtn">
-                    🎯 Fetch scholarlens-ai
-                </button>
-            </div>
-            <div id="roadmapResult"></div>
         </div>
-        
-        <!-- API Info Card -->
-        <div class="card">
-            <h2>ℹ️ API Information</h2>
-            <div class="info-box">
-                <p><strong>Base URL:</strong> <code>https://jagdnotionapiserver.vercel.app</code></p>
-                <p style="margin-top: 10px;"><strong>Available Endpoints:</strong></p>
-                <ul style="margin-left: 20px; margin-top: 10px;">
+
+        <!-- GitHub Tab -->
+        <div id="github-tab" class="tab-content">
+            <div class="card">
+                <h2><span class="icon">🐙</span> GitHub API</h2>
+                
+                <div class="info-box">
+                    <strong>Base URL:</strong> <code>/api/github</code><br>
+                    Test GitHub integration for contributions and commits.
+                </div>
+
+                <div class="grid">
+                    <div class="endpoint-card">
+                        <h3>🧪 Test Connection</h3>
+                        <p style="color: #666; margin: 10px 0;">Verify GitHub API connection</p>
+                        <div class="url-display">GET /api/github/test</div>
+                        <button onclick="testGitHub()" id="githubTestBtn">
+                            Run Test
+                        </button>
+                    </div>
+
+                    <div class="endpoint-card">
+                        <h3>📈 User Contributions</h3>
+                        <p style="color: #666; margin: 10px 0;">Last 5 months of contributions</p>
+                        <input type="text" id="githubUsername" placeholder="GitHub username" value="giuseppi">
+                        <div class="url-display" style="margin-top: 10px;">GET /api/github/contributions?username=...</div>
+                        <button onclick="fetchGitHubContributions()" id="githubContribBtn">
+                            Fetch Contributions
+                        </button>
+                    </div>
+
+                    <div class="endpoint-card">
+                        <h3>💾 Repository Commits</h3>
+                        <p style="color: #666; margin: 10px 0;">Team commits from a repo</p>
+                        <input type="text" id="githubRepo" placeholder="owner/repo" value="jagdteam/clicr">
+                        <div class="url-display" style="margin-top: 10px;">GET /api/github/commits?repo=...</div>
+                        <button onclick="fetchGitHubCommits()" id="githubCommitsBtn">
+                            Fetch Commits
+                        </button>
+                    </div>
+                </div>
+
+                <div id="githubResult"></div>
+            </div>
+        </div>
+
+        <!-- LeetCode Tab -->
+        <div id="leetcode-tab" class="tab-content">
+            <div class="card">
+                <h2><span class="icon">💻</span> LeetCode API</h2>
+                
+                <div class="info-box">
+                    <strong>Base URL:</strong> <code>/api/leetcode</code><br>
+                    Test LeetCode integration for user statistics.
+                </div>
+
+                <div class="grid">
+                    <div class="endpoint-card">
+                        <h3>🧪 Test Connection</h3>
+                        <p style="color: #666; margin: 10px 0;">Verify LeetCode API connection</p>
+                        <div class="url-display">GET /api/leetcode/test</div>
+                        <button onclick="testLeetCode()" id="leetcodeTestBtn">
+                            Run Test
+                        </button>
+                    </div>
+
+                    <div class="endpoint-card">
+                        <h3>📊 User Statistics</h3>
+                        <p style="color: #666; margin: 10px 0;">Problems solved & submissions</p>
+                        <input type="text" id="leetcodeUsername" placeholder="LeetCode username" value="giuseppi">
+                        <div class="url-display" style="margin-top: 10px;">GET /api/leetcode/stats?username=...</div>
+                        <button onclick="fetchLeetCodeStats()" id="leetcodeStatsBtn">
+                            Fetch Stats
+                        </button>
+                    </div>
+                </div>
+
+                <div id="leetcodeResult"></div>
+            </div>
+        </div>
+
+        <!-- Info Tab -->
+        <div id="info-tab" class="tab-content">
+            <div class="card">
+                <h2>ℹ️ API Information</h2>
+                
+                <h3 style="margin-top: 20px;">🌐 Base URLs</h3>
+                <div class="info-box">
+                    <p><strong>Production:</strong> <code>https://jagdnotionapiserver.vercel.app</code></p>
+                    <p style="margin-top: 10px;"><strong>Local Dev:</strong> <code>http://localhost:3000</code></p>
+                </div>
+
+                <h3 style="margin-top: 20px;">📡 Available Endpoints</h3>
+                
+                <h4 style="margin-top: 15px; color: #667eea;">Notion API</h4>
+                <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
                     <li><code>GET /api/notion/test</code> - Test connection</li>
-                    <li><code>GET /api/notion/roadmap</code> - Get all roadmap data</li>
-                    <li><code>GET /api/notion/roadmap?projectSlug=PROJECT_NAME</code> - Get specific project</li>
+                    <li><code>GET /api/notion/roadmap?projectSlug=PROJECT</code> - Get project roadmap</li>
                 </ul>
+
+                <h4 style="margin-top: 15px; color: #667eea;">GitHub API</h4>
+                <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+                    <li><code>GET /api/github/test</code> - Test connection</li>
+                    <li><code>GET /api/github/contributions?username=USER</code> - User contributions (5 months)</li>
+                    <li><code>GET /api/github/commits?repo=OWNER/REPO</code> - Repository commits (team filtered)</li>
+                </ul>
+
+                <h4 style="margin-top: 15px; color: #667eea;">LeetCode API</h4>
+                <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+                    <li><code>GET /api/leetcode/test</code> - Test connection</li>
+                    <li><code>GET /api/leetcode/stats?username=USER</code> - User stats & submissions (5 months)</li>
+                </ul>
+
+                <h3 style="margin-top: 20px;">⚡ Features</h3>
+                <div class="info-box">
+                    <ul style="margin-left: 20px; line-height: 1.8;">
+                        <li>✅ <strong>Caching:</strong> All endpoints cache until midnight PST</li>
+                        <li>✅ <strong>CORS Enabled:</strong> Ready for frontend integration</li>
+                        <li>✅ <strong>Standardized Responses:</strong> <code>{ success, data/error }</code> format</li>
+                        <li>✅ <strong>Error Handling:</strong> Detailed error messages</li>
+                        <li>✅ <strong>Personal Tokens:</strong> GitHub supports per-user tokens for private data</li>
+                    </ul>
+                </div>
+
+                <h3 style="margin-top: 20px;">🔧 Environment Variables</h3>
+                <div class="info-box">
+                    <p><strong>Notion:</strong> NOTION_API_KEY, NOTION_CODELENS_DATABASE_ID</p>
+                    <p><strong>GitHub:</strong> GITHUB_API_TOKEN, [USERNAME]_GITHUB_TOKEN (optional)</p>
+                    <p><strong>LeetCode:</strong> No tokens required (public API)</p>
+                    <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                        See <code>ENV_TEMPLATE.md</code> for detailed setup instructions.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        const API_BASE = 'https://jagdnotionapiserver.vercel.app';
+        // Use localhost for local testing, production URL for deployed version
+        const API_BASE = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000'
+            : 'https://jagdnotionapiserver.vercel.app';
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            event.target.classList.add('active');
+        }
         
         function showLoading(buttonId) {
             const btn = document.getElementById(buttonId);
@@ -249,65 +495,149 @@
                 </div>
             `;
         }
+
+        // ========== NOTION API TESTS ==========
         
-        async function testConnection() {
-            showLoading('testBtn');
+        async function testNotion() {
+            showLoading('notionTestBtn');
             
             try {
                 const response = await fetch(`${API_BASE}/api/notion/test`);
                 const data = await response.json();
                 
-                displayResult('testResult', data, data.success);
+                displayResult('notionResult', data, data.success);
             } catch (error) {
-                displayResult('testResult', {
+                displayResult('notionResult', {
                     success: false,
-                    error: error.message,
-                    message: 'Failed to connect to API'
+                    error: error.message
                 }, false);
             } finally {
-                hideLoading('testBtn', '🧪 Test Connection');
+                hideLoading('notionTestBtn', 'Run Test');
             }
         }
         
-        async function fetchAllRoadmap() {
-            showLoading('allBtn');
+        async function fetchNotionRoadmap() {
+            showLoading('notionRoadmapBtn');
+            const projectSlug = document.getElementById('notionProjectSlug').value;
             
             try {
-                const response = await fetch(`${API_BASE}/api/notion/roadmap`);
+                const url = projectSlug 
+                    ? `${API_BASE}/api/notion/roadmap?projectSlug=${projectSlug}`
+                    : `${API_BASE}/api/notion/roadmap`;
+                    
+                const response = await fetch(url);
                 const data = await response.json();
                 
-                displayResult('roadmapResult', data, data.success);
+                displayResult('notionResult', data, data.success);
             } catch (error) {
-                displayResult('roadmapResult', {
+                displayResult('notionResult', {
                     success: false,
-                    error: error.message,
-                    message: 'Failed to fetch roadmap data'
+                    error: error.message
                 }, false);
             } finally {
-                hideLoading('allBtn', '📊 Fetch All Projects');
+                hideLoading('notionRoadmapBtn', 'Fetch Roadmap');
+            }
+        }
+
+        // ========== GITHUB API TESTS ==========
+        
+        async function testGitHub() {
+            showLoading('githubTestBtn');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/github/test`);
+                const data = await response.json();
+                
+                displayResult('githubResult', data, data.success);
+            } catch (error) {
+                displayResult('githubResult', {
+                    success: false,
+                    error: error.message
+                }, false);
+            } finally {
+                hideLoading('githubTestBtn', 'Run Test');
             }
         }
         
-        async function fetchProjectRoadmap() {
-            showLoading('projectBtn');
+        async function fetchGitHubContributions() {
+            showLoading('githubContribBtn');
+            const username = document.getElementById('githubUsername').value;
             
             try {
-                const response = await fetch(`${API_BASE}/api/notion/roadmap?projectSlug=scholarlens-ai`);
+                const response = await fetch(`${API_BASE}/api/github/contributions?username=${username}`);
                 const data = await response.json();
                 
-                displayResult('roadmapResult', data, data.success);
+                displayResult('githubResult', data, data.success);
             } catch (error) {
-                displayResult('roadmapResult', {
+                displayResult('githubResult', {
                     success: false,
-                    error: error.message,
-                    message: 'Failed to fetch project roadmap'
+                    error: error.message
                 }, false);
             } finally {
-                hideLoading('projectBtn', '🎯 Fetch scholarlens-ai');
+                hideLoading('githubContribBtn', 'Fetch Contributions');
             }
         }
+        
+        async function fetchGitHubCommits() {
+            showLoading('githubCommitsBtn');
+            const repo = document.getElementById('githubRepo').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/github/commits?repo=${repo}`);
+                const data = await response.json();
+                
+                displayResult('githubResult', data, data.success);
+            } catch (error) {
+                displayResult('githubResult', {
+                    success: false,
+                    error: error.message
+                }, false);
+            } finally {
+                hideLoading('githubCommitsBtn', 'Fetch Commits');
+            }
+        }
+
+        // ========== LEETCODE API TESTS ==========
+        
+        async function testLeetCode() {
+            showLoading('leetcodeTestBtn');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/leetcode/test`);
+                const data = await response.json();
+                
+                displayResult('leetcodeResult', data, data.success);
+            } catch (error) {
+                displayResult('leetcodeResult', {
+                    success: false,
+                    error: error.message
+                }, false);
+            } finally {
+                hideLoading('leetcodeTestBtn', 'Run Test');
+            }
+        }
+        
+        async function fetchLeetCodeStats() {
+            showLoading('leetcodeStatsBtn');
+            const username = document.getElementById('leetcodeUsername').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/leetcode/stats?username=${username}`);
+                const data = await response.json();
+                
+                displayResult('leetcodeResult', data, data.success);
+            } catch (error) {
+                displayResult('leetcodeResult', {
+                    success: false,
+                    error: error.message
+                }, false);
+            } finally {
+                hideLoading('leetcodeStatsBtn', 'Fetch Stats');
+            }
+        }
+
+        // Display API base URL on load
+        console.log('🔌 API Base URL:', API_BASE);
     </script>
 </body>
 </html>
-
-
