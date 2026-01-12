@@ -20,12 +20,18 @@ module.exports = async (req, res) => {
 
   try {
     const { projectSlug } = req.query;
-    const DATABASE_ID = process.env.NOTION_DATABASE_ID;
+
+    const DATABASE_MAP = {
+      'CodeLens': process.env.NOTION_CODELENS_DATABASE_ID,
+      // Add more projectSlug to DATABASE_ID mappings here
+    };
+
+    const DATABASE_ID = DATABASE_MAP[projectSlug];
 
     if (!DATABASE_ID) {
-      return res.status(500).json({
+      return res.status(400).json({
         success: false,
-        error: 'Database ID not configured',
+        error: `Database ID not configured for projectSlug: ${projectSlug}`,
       });
     }
 
@@ -38,30 +44,17 @@ module.exports = async (req, res) => {
       database_id: DATABASE_ID,
     };
 
-    // Add filter if projectSlug is provided
-    if (projectSlug) {
-      queryOptions.filter = {
-        property: 'Project',
-        rich_text: {
-          equals: projectSlug,
-        },
-      };
-    }
 
     const response = await notion.databases.query(queryOptions);
 
     console.log(`📊 Fetched ${response.results.length} items from Notion`);
-    if (projectSlug) {
-      console.log(`🔍 Filtered by project: ${projectSlug}`);
-    }
 
-    // Group items by project and phase
-    const projectsMap = {};
+    // Group items by phase
+    const phasesMap = {};
 
     response.results.forEach((page) => {
       const props = page.properties;
       
-      const project = props.Project?.rich_text?.[0]?.plain_text || '';
       const phaseName = props['Phase Name']?.rich_text?.[0]?.plain_text || '';
       const phase = props.Phase?.select?.name || '';
       const date = props.Date?.rich_text?.[0]?.plain_text || '';
@@ -86,17 +79,14 @@ module.exports = async (req, res) => {
         description: props.Description?.rich_text?.[0]?.plain_text || '',
       };
 
-      console.log(`  ✓ ${item.name} [Raw: "${rawStatus}" → Mapped: "${status}"] → ${project} / ${phase}`);
+      console.log(`  ✓ ${item.name} [Raw: "${rawStatus}" → Mapped: "${status}"] → ${phase}`);
 
       // Initialize project if doesn't exist
-      if (!projectsMap[project]) {
-        projectsMap[project] = {};
-      }
 
       // Initialize phase if doesn't exist
-      if (!projectsMap[project][phase]) {
-        projectsMap[project][phase] = {
-          id: `${project}-${phase.toLowerCase().replace(/\s+/g, '-')}`,
+      if (!phasesMap[phase]) {
+        phasesMap[phase] = {
+          id: `${projectSlug}-${phase.toLowerCase().replace(/\s+/g, '-')}`,
           name: phaseName,
           date: date,
           items: [],
@@ -104,33 +94,25 @@ module.exports = async (req, res) => {
       }
 
       // Add item to phase
-      projectsMap[project][phase].items.push(item);
+      phasesMap[phase].items.push(item);
     });
 
     // Convert to array format and sort phases by number
-    const result = {};
-    Object.entries(projectsMap).forEach(([project, phases]) => {
-      // Sort phases by extracting phase number (e.g., "Phase 1" → 1)
-      const sortedPhases = Object.entries(phases)
-        .sort((a, b) => {
-          // Extract phase numbers from the phase keys
-          const getPhaseNumber = (phaseKey) => {
-            const match = phaseKey.match(/(\d+)/);
-            return match ? parseInt(match[1]) : 999; // Put phases without numbers at the end
-          };
-          return getPhaseNumber(a[0]) - getPhaseNumber(b[0]);
-        })
-        .map(([key, value]) => value);
-      
-      result[project] = sortedPhases;
-      console.log(`📦 Project: ${project} → ${sortedPhases.length} phases (sorted)`);
-    });
+    const sortedPhases = Object.entries(phasesMap)
+      .sort((a, b) => {
+        const getPhaseNumber = (phaseKey) => {
+          const match = phaseKey.match(/(\d+)/);
+          return match ? parseInt(match[1]) : 999;
+        };
+        return getPhaseNumber(a[0]) - getPhaseNumber(b[0]);
+      })
+      .map(([key, value]) => value);
 
-    console.log(`✅ Returning grouped roadmap data`);
+    console.log(`📦 Fetched ${sortedPhases.length} phases for project: ${projectSlug}`);
 
     res.status(200).json({
       success: true,
-      data: result,
+      data: sortedPhases,
     });
   } catch (error) {
     console.error('Notion API Error:', error);
