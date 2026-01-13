@@ -175,6 +175,7 @@
         border-left: 4px solid #667eea;
         max-height: 600px;
         overflow-y: auto;
+        position: relative;
       }
 
       .result pre {
@@ -184,6 +185,40 @@
         font-size: 0.9rem;
         line-height: 1.5;
         color: #333;
+        margin-top: 10px;
+      }
+
+      .copy-btn {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .copy-btn:hover {
+        background: #5568d3;
+        transform: translateY(-1px);
+      }
+
+      .copy-btn.copied {
+        background: #10b981;
+      }
+
+      .result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
       }
 
       .success {
@@ -304,7 +339,7 @@
 
           <div class="info-box">
             <strong>Base URL:</strong> <code>/api/notion</code><br />
-            Test your Notion database integration for roadmap data.
+            Test your Notion database integration for roadmap and sprint management data.
           </div>
 
           <div class="grid">
@@ -321,7 +356,7 @@
             </div>
 
             <div class="endpoint-card">
-              <h3>📊 Fetch Roadmap</h3>
+              <h3>📊 Fetch Roadmap (Legacy)</h3>
               <p style="color: #666; margin: 10px 0">Get roadmap data for a project</p>
               <input
                 type="text"
@@ -340,6 +375,29 @@
                 id="notionRoadmapBtn"
               >
                 Fetch Roadmap
+              </button>
+            </div>
+
+            <div class="endpoint-card">
+              <h3>🚀 Fetch Sprints</h3>
+              <p style="color: #666; margin: 10px 0">Get Sprint → Epic → Ticket hierarchy</p>
+              <input
+                type="text"
+                id="notionSprintSlug"
+                placeholder="Project slug (e.g., CodeLens)"
+                value="CodeLens"
+              />
+              <div
+                class="url-display"
+                style="margin-top: 10px"
+              >
+                GET /api/notion/sprints?projectSlug=...
+              </div>
+              <button
+                onclick="fetchNotionSprints()"
+                id="notionSprintsBtn"
+              >
+                Fetch Sprints
               </button>
             </div>
           </div>
@@ -507,14 +565,15 @@
           <h4 style="margin-top: 15px; color: #667eea">Notion API</h4>
           <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8">
             <li><code>GET /api/notion/test</code> - Test connection</li>
-            <li><code>GET /api/notion/roadmap?projectSlug=PROJECT</code> - Get project roadmap</li>
+            <li><code>GET /api/notion/roadmap?projectSlug=PROJECT</code> - Get project roadmap (legacy)</li>
+            <li><code>GET /api/notion/sprints?projectSlug=PROJECT</code> - Get Sprint → Epic → Ticket hierarchy</li>
           </ul>
 
           <h4 style="margin-top: 15px; color: #667eea">GitHub API</h4>
           <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8">
             <li><code>GET /api/github/test</code> - Test connection</li>
-            <li><code>GET /api/github/contributions?username=USER</code> - User contributions (5 months)</li>
-            <li><code>GET /api/github/commits?repo=OWNER/REPO</code> - Repository commits (team filtered)</li>
+            <li><code>GET /api/github/contributions?username=USER&months=N</code> - User contributions (optional months param)</li>
+            <li><code>GET /api/github/commits?repo=OWNER/REPO</code> - Repository commits (team filtered, paginated)</li>
           </ul>
 
           <h4 style="margin-top: 15px; color: #667eea">LeetCode API</h4>
@@ -538,7 +597,8 @@
 
           <h3 style="margin-top: 20px">🔧 Environment Variables</h3>
           <div class="info-box">
-            <p><strong>Notion:</strong> NOTION_API_KEY, NOTION_CODELENS_DATABASE_ID</p>
+            <p><strong>Notion:</strong> NOTION_API_KEY, NOTION_CODELENS_DATABASE_ID (legacy)</p>
+            <p><strong>Notion Sprints:</strong> NOTION_CODELENS_SPRINTS_DB_ID, NOTION_CODELENS_EPICS_DB_ID, NOTION_CODELENS_ISSUES_DB_ID</p>
             <p><strong>GitHub:</strong> GITHUB_API_TOKEN, [USERNAME]_GITHUB_TOKEN (optional)</p>
             <p><strong>LeetCode:</strong> No tokens required (public API)</p>
             <p style="margin-top: 10px; font-size: 0.9rem; color: #666">See <code>ENV_TEMPLATE.md</code> for detailed setup instructions.</p>
@@ -584,13 +644,46 @@
           ? '<span class="status-badge status-success">✓ Success</span>'
           : '<span class="status-badge status-error">✗ Error</span>';
 
+        const jsonString = JSON.stringify(data, null, 2);
+        const uniqueId = `copy-${elementId}-${Date.now()}`;
+
         element.innerHTML = `
                 <div class="result ${statusClass}">
-                    ${statusBadge}
-                    <strong>${new Date().toLocaleTimeString()}</strong>
-                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                    <button class="copy-btn" onclick="copyToClipboard('${uniqueId}', this)" title="Copy JSON to clipboard">
+                        📋 Copy
+                    </button>
+                    <div class="result-header">
+                        ${statusBadge}
+                        <strong>${new Date().toLocaleTimeString()}</strong>
+                    </div>
+                    <pre id="${uniqueId}">${jsonString}</pre>
                 </div>
             `;
+      }
+
+      async function copyToClipboard(preId, button) {
+        const preElement = document.getElementById(preId);
+        const text = preElement.textContent;
+
+        try {
+          await navigator.clipboard.writeText(text);
+
+          // Visual feedback
+          const originalText = button.innerHTML;
+          button.innerHTML = '✓ Copied!';
+          button.classList.add('copied');
+
+          setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('copied');
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy:', err);
+          button.innerHTML = '✗ Failed';
+          setTimeout(() => {
+            button.innerHTML = '📋 Copy';
+          }, 2000);
+        }
       }
 
       // ========== NOTION API TESTS ==========
@@ -639,6 +732,31 @@
           );
         } finally {
           hideLoading('notionRoadmapBtn', 'Fetch Roadmap');
+        }
+      }
+
+      async function fetchNotionSprints() {
+        showLoading('notionSprintsBtn');
+        const projectSlug = document.getElementById('notionSprintSlug').value;
+
+        try {
+          const url = projectSlug ? `${API_BASE}/api/notion/sprints?projectSlug=${projectSlug}` : `${API_BASE}/api/notion/sprints`;
+
+          const response = await fetch(url);
+          const data = await response.json();
+
+          displayResult('notionResult', data, data.success);
+        } catch (error) {
+          displayResult(
+            'notionResult',
+            {
+              success: false,
+              error: error.message,
+            },
+            false
+          );
+        } finally {
+          hideLoading('notionSprintsBtn', 'Fetch Sprints');
         }
       }
 
