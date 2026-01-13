@@ -78,6 +78,11 @@ module.exports = async (req, res) => {
         epics: process.env.NOTION_CODELENS_EPICS_DB_ID,
         issues: process.env.NOTION_CODELENS_ISSUES_DB_ID || process.env.NOTION_CODELENS_TICKETS_DB_ID,
       },
+      'Clutch': {
+        sprints: process.env.NOTION_CLUTCH_SPRINTS_DB_ID,
+        epics: process.env.NOTION_CLUTCH_EPICS_DB_ID,
+        issues: process.env.NOTION_CLUTCH_ISSUES_DB_ID || process.env.NOTION_CLUTCH_TICKETS_DB_ID,
+      },
       // Add more projects here
     };
 
