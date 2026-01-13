@@ -71,16 +71,13 @@ module.exports = async (req, res) => {
     let hasMore = true;
 
     while (hasMore) {
-      const response = await fetch(
-        `https://api.github.com/repos/${repo}/commits?per_page=100&page=${page}`,
-        {
-          headers: {
-            'Authorization': `token ${token}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'JAGD-API-Server',
-          },
-        }
-      );
+      const response = await fetch(`https://api.github.com/repos/${repo}/commits?per_page=100&page=${page}`, {
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'JAGD-API-Server',
+        },
+      });
 
       if (!response.ok) {
         if (response.status === 409) {
@@ -95,13 +92,13 @@ module.exports = async (req, res) => {
       }
 
       const commits = await response.json();
-      
+
       if (commits.length === 0) {
         hasMore = false;
       } else {
         allCommits = allCommits.concat(commits);
         console.log(`   📄 Fetched page ${page}: ${commits.length} commits (total: ${allCommits.length})`);
-        
+
         // If we got less than 100, we're on the last page
         if (commits.length < 100) {
           hasMore = false;
