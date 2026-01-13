@@ -63,30 +63,55 @@ module.exports = async (req, res) => {
       });
     }
 
-    console.log(`📊 Fetching commits for ${repo}`);
+    console.log(`📊 Fetching commits for ${repo} (with pagination)`);
 
-    // Fetch commits
-    const response = await fetch(`https://api.github.com/repos/${repo}/commits?per_page=100`, {
-      headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'JAGD-API-Server',
-      },
-    });
+    // Fetch ALL commits with pagination
+    let allCommits = [];
+    let page = 1;
+    let hasMore = true;
 
-    if (!response.ok) {
-      if (response.status === 409) {
-        // Empty repository
-        console.log(`⚠️  Repo ${repo} is empty (no commits yet)`);
-        return res.status(200).json({
-          success: true,
-          data: [],
-        });
+    while (hasMore) {
+      const response = await fetch(
+        `https://api.github.com/repos/${repo}/commits?per_page=100&page=${page}`,
+        {
+          headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'JAGD-API-Server',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          // Empty repository
+          console.log(`⚠️  Repo ${repo} is empty (no commits yet)`);
+          return res.status(200).json({
+            success: true,
+            data: [],
+          });
+        }
+        throw new Error(`GitHub API returned ${response.status}`);
       }
-      throw new Error(`GitHub API returned ${response.status}`);
+
+      const commits = await response.json();
+      
+      if (commits.length === 0) {
+        hasMore = false;
+      } else {
+        allCommits = allCommits.concat(commits);
+        console.log(`   📄 Fetched page ${page}: ${commits.length} commits (total: ${allCommits.length})`);
+        
+        // If we got less than 100, we're on the last page
+        if (commits.length < 100) {
+          hasMore = false;
+        } else {
+          page++;
+        }
+      }
     }
 
-    const commits = await response.json();
+    const commits = allCommits;
 
     // Process commits
     const devLog = commits
@@ -133,8 +158,7 @@ module.exports = async (req, res) => {
           assigneeImg: getTeamMemberImage(teamMember.name),
         };
       })
-      .filter((entry) => entry !== null)
-      .slice(0, 50); // Keep only 50 most recent team commits
+      .filter((entry) => entry !== null); // Get ALL team commits
 
     // Invert week numbers (Week 4 = most recent)
     const maxWeek = Math.max(...devLog.map((entry) => entry.weekNumber), 0);

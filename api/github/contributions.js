@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { username } = req.query;
+    const { username, months } = req.query;
 
     if (!username) {
       return res.status(400).json({
@@ -51,11 +51,20 @@ module.exports = async (req, res) => {
       });
     }
 
-    console.log(`📊 Fetching GitHub contributions for ${username} using ${process.env[userTokenKey] ? 'personal' : 'org'} token`);
-
-    // Calculate 5 months ago
-    const fiveMonthsAgo = new Date();
-    fiveMonthsAgo.setMonth(fiveMonthsAgo.getMonth() - 5);
+    // Calculate start date based on months parameter (default to all-time)
+    const startDate = new Date();
+    if (months) {
+      const monthsNum = parseInt(months);
+      startDate.setMonth(startDate.getMonth() - monthsNum);
+      console.log(
+        `📊 Fetching GitHub contributions for ${username} (last ${monthsNum} months) using ${process.env[userTokenKey] ? 'personal' : 'org'} token`
+      );
+    } else {
+      // Fetch all-time contributions (GitHub API supports back to account creation)
+      // Set to a date far in the past (before GitHub existed)
+      startDate.setFullYear(2008, 0, 1); // GitHub was founded in 2008
+      console.log(`📊 Fetching ALL GitHub contributions for ${username} using ${process.env[userTokenKey] ? 'personal' : 'org'} token`);
+    }
 
     // GraphQL query
     const query = `
@@ -86,7 +95,7 @@ module.exports = async (req, res) => {
         query,
         variables: {
           username,
-          from: fiveMonthsAgo.toISOString(),
+          from: startDate.toISOString(),
         },
       }),
     });

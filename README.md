@@ -172,11 +172,12 @@ Test GitHub API connection.
 }
 ```
 
-#### GET `/api/github/contributions?username=giuseppi`
-Fetch user's GitHub contributions for the last 5 months.
+#### GET `/api/github/contributions?username=giuseppi&months=5`
+Fetch user's GitHub contributions.
 
 **Query Parameters:**
 - `username` (required): GitHub username
+- `months` (optional): Number of months to fetch (default: all-time)
 
 **Response:**
 ```json
@@ -191,10 +192,14 @@ Fetch user's GitHub contributions for the last 5 months.
 }
 ```
 
+**Examples:**
+- `/api/github/contributions?username=giuseppi` - All-time contributions
+- `/api/github/contributions?username=giuseppi&months=5` - Last 5 months only
+
 **Note:** Uses personal tokens (`[USERNAME]_GITHUB_TOKEN`) if available for private contributions, falls back to org token.
 
 #### GET `/api/github/commits?repo=jagdteam/clicr`
-Fetch repository commits filtered to team members.
+Fetch **ALL** repository commits filtered to team members (with pagination).
 
 **Query Parameters:**
 - `repo` (required): Repository in format `owner/repo`
@@ -216,6 +221,11 @@ Fetch repository commits filtered to team members.
   ]
 }
 ```
+
+**Note:** 
+- Fetches ALL commits from the repository using automatic pagination
+- Filters to only include commits from configured team members
+- May take longer for repositories with many commits
 
 ---
 
