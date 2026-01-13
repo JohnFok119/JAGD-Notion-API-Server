@@ -54,14 +54,22 @@ module.exports = async (req, res) => {
       });
     }
 
-    const token = process.env.GITHUB_API_TOKEN;
+    // Use token rotation to increase rate limit (5k requests/hour per token)
+    // Rotate through available tokens to multiply the rate limit
+    const availableTokens = [process.env.GITHUB_API_TOKEN, process.env.GIUSEPPI_GITHUB_TOKEN, process.env.JOHNFOK119_GITHUB_TOKEN].filter(Boolean);
 
-    if (!token) {
+    if (availableTokens.length === 0) {
       return res.status(500).json({
         success: false,
         error: 'GitHub token not configured',
       });
     }
+
+    // Simple rotation: use hash of repo name to distribute load
+    const tokenIndex = Math.abs(repo.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % availableTokens.length;
+    const token = availableTokens[tokenIndex];
+
+    console.log(`🔑 Using token ${tokenIndex + 1}/${availableTokens.length} for ${repo}`);
 
     // Validate since date if provided
     let sinceParam = '';
@@ -81,6 +89,9 @@ module.exports = async (req, res) => {
 
     // Fetch commits in parallel for each team member using author parameter
     // This is MUCH more efficient than pagination, especially for forked repos
+    let hasAnyError = false;
+    let errorDetails = [];
+
     const fetchPromises = teamMembers.map(async (member) => {
       try {
         const url = `https://api.github.com/repos/${repo}/commits?author=${member.github}&per_page=100${sinceParam}`;
@@ -94,12 +105,33 @@ module.exports = async (req, res) => {
         });
 
         if (!response.ok) {
-          if (response.status === 409 || response.status === 404) {
-            // Empty repository or not found - return empty array
-            console.log(`   ⚠️  ${member.name}: No commits found`);
+          const errorText = await response.text();
+
+          // Check for rate limiting
+          if (response.status === 403 && errorText.includes('rate limit')) {
+            const resetTime = response.headers.get('x-ratelimit-reset');
+            const resetDate = resetTime ? new Date(parseInt(resetTime) * 1000) : null;
+            console.error(`   ❌ ${member.name}: GitHub API rate limit exceeded (resets at ${resetDate})`);
+            hasAnyError = true;
+            errorDetails.push(
+              `${member.name}: Rate limit exceeded (resets at ${resetDate?.toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles' })} PST)`
+            );
             return [];
           }
-          console.error(`   ❌ ${member.name}: GitHub API returned ${response.status}`);
+
+          if (response.status === 409) {
+            console.log(`   ⚠️  ${member.name}: Repository is empty`);
+            return [];
+          }
+          if (response.status === 404) {
+            console.log(`   ⚠️  ${member.name}: Repository not found or no commits`);
+            hasAnyError = true;
+            errorDetails.push(`${member.name}: Repo not found (404)`);
+            return [];
+          }
+          console.error(`   ❌ ${member.name}: GitHub API returned ${response.status} - ${errorText}`);
+          hasAnyError = true;
+          errorDetails.push(`${member.name}: HTTP ${response.status}`);
           return [];
         }
 
@@ -113,6 +145,8 @@ module.exports = async (req, res) => {
         }));
       } catch (error) {
         console.error(`   ❌ ${member.name}: ${error.message}`);
+        hasAnyError = true;
+        errorDetails.push(`${member.name}: ${error.message}`);
         return [];
       }
     });
@@ -124,6 +158,37 @@ module.exports = async (req, res) => {
     const allCommits = allCommitArrays.flat().sort((a, b) => new Date(b.commit.author.date) - new Date(a.commit.author.date));
 
     console.log(`📦 Total commits fetched: ${allCommits.length}`);
+
+    // If no commits found for any team member, return helpful message
+    if (allCommits.length === 0) {
+      console.log(`⚠️  No commits found for any team member in ${repo}`);
+
+      if (hasAnyError) {
+        console.error(`❌ Errors occurred: ${errorDetails.join(', ')}`);
+
+        // Check if it's a rate limit issue
+        const isRateLimited = errorDetails.some((detail) => detail.includes('Rate limit'));
+        if (isRateLimited) {
+          return res.status(429).json({
+            success: false,
+            error: 'GitHub API rate limit exceeded. Please try again later.',
+            details: errorDetails,
+          });
+        }
+
+        return res.status(404).json({
+          success: false,
+          error: `Repository not found or inaccessible: ${repo}`,
+          details: errorDetails,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: [],
+        message: 'No commits found for team members in this repository. Team members may not have commits yet.',
+      });
+    }
 
     const commits = allCommits;
 

@@ -112,9 +112,20 @@ module.exports = async (req, res) => {
 
     if (data.errors) {
       console.error('❌ GitHub GraphQL API errors:', data.errors);
+      
+      // Check for rate limiting
+      const errorMessage = data.errors[0].message || '';
+      if (errorMessage.includes('rate limit') || response.status === 403) {
+        return res.status(429).json({
+          success: false,
+          error: 'GitHub API rate limit exceeded. Please try again later.',
+          details: data.errors,
+        });
+      }
+      
       return res.status(500).json({
         success: false,
-        error: data.errors[0].message || 'GitHub API error',
+        error: errorMessage || 'GitHub API error',
       });
     }
 

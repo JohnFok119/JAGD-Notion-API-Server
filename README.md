@@ -237,6 +237,8 @@ Fetch repository commits filtered to team members using parallel author queries 
 - 💾 **100 commits per team member** (400 total max) - sufficient for portfolio display
 - 🔒 **No post-filtering needed** - GitHub API does the heavy lifting
 - ⏱️ **2-3 seconds** response time vs 30-60 seconds with pagination approach
+- 🔄 **Token Rotation:** Automatically rotates through available tokens (15k requests/hour with 3 tokens)
+- 🛡️ **Rate Limit Handling:** Detects and reports rate limit errors with reset times
 
 ---
 
