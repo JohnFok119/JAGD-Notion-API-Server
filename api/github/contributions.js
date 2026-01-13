@@ -51,19 +51,27 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Calculate start date based on months parameter (default to all-time)
+    // Calculate start date based on months parameter
+    // NOTE: GitHub's contributionsCollection API has a max range of ~1 year
+    // For "all-time", we'll fetch last 12 months by default
     const startDate = new Date();
     if (months) {
       const monthsNum = parseInt(months);
-      startDate.setMonth(startDate.getMonth() - monthsNum);
+      if (monthsNum > 12) {
+        console.log(`⚠️  Requested ${monthsNum} months, limiting to 12 months (GitHub API max)`);
+        startDate.setMonth(startDate.getMonth() - 12);
+      } else {
+        startDate.setMonth(startDate.getMonth() - monthsNum);
+      }
       console.log(
-        `📊 Fetching GitHub contributions for ${username} (last ${monthsNum} months) using ${process.env[userTokenKey] ? 'personal' : 'org'} token`
+        `📊 Fetching GitHub contributions for ${username} (last ${Math.min(monthsNum, 12)} months) using ${
+          process.env[userTokenKey] ? 'personal' : 'org'
+        } token`
       );
     } else {
-      // Fetch all-time contributions (GitHub API supports back to account creation)
-      // Set to a date far in the past (before GitHub existed)
-      startDate.setFullYear(2008, 0, 1); // GitHub was founded in 2008
-      console.log(`📊 Fetching ALL GitHub contributions for ${username} using ${process.env[userTokenKey] ? 'personal' : 'org'} token`);
+      // Default to 12 months (GitHub API limitation)
+      startDate.setMonth(startDate.getMonth() - 12);
+      console.log(`📊 Fetching GitHub contributions for ${username} (last 12 months) using ${process.env[userTokenKey] ? 'personal' : 'org'} token`);
     }
 
     // GraphQL query

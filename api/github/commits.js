@@ -45,7 +45,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { repo } = req.query;
+    const { repo, since } = req.query;
 
     if (!repo) {
       return res.status(400).json({
@@ -63,99 +63,100 @@ module.exports = async (req, res) => {
       });
     }
 
-    console.log(`📊 Fetching commits for ${repo} (with pagination)`);
-
-    // Fetch ALL commits with pagination
-    let allCommits = [];
-    let page = 1;
-    let hasMore = true;
-
-    while (hasMore) {
-      const response = await fetch(`https://api.github.com/repos/${repo}/commits?per_page=100&page=${page}`, {
-        headers: {
-          'Authorization': `token ${token}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'JAGD-API-Server',
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 409) {
-          // Empty repository
-          console.log(`⚠️  Repo ${repo} is empty (no commits yet)`);
-          return res.status(200).json({
-            success: true,
-            data: [],
-          });
-        }
-        throw new Error(`GitHub API returned ${response.status}`);
+    // Validate since date if provided
+    let sinceParam = '';
+    if (since) {
+      const sinceDate = new Date(since);
+      if (isNaN(sinceDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid since date format. Use YYYY-MM-DD or ISO 8601 format',
+        });
       }
-
-      const commits = await response.json();
-
-      if (commits.length === 0) {
-        hasMore = false;
-      } else {
-        allCommits = allCommits.concat(commits);
-        console.log(`   📄 Fetched page ${page}: ${commits.length} commits (total: ${allCommits.length})`);
-
-        // If we got less than 100, we're on the last page
-        if (commits.length < 100) {
-          hasMore = false;
-        } else {
-          page++;
-        }
-      }
+      sinceParam = `&since=${sinceDate.toISOString()}`;
+      console.log(`📊 Fetching commits for ${repo} since ${since} (author-filtered, parallel)`);
+    } else {
+      console.log(`📊 Fetching commits for ${repo} (author-filtered, parallel)`);
     }
+
+    // Fetch commits in parallel for each team member using author parameter
+    // This is MUCH more efficient than pagination, especially for forked repos
+    const fetchPromises = teamMembers.map(async (member) => {
+      try {
+        const url = `https://api.github.com/repos/${repo}/commits?author=${member.github}&per_page=100${sinceParam}`;
+
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'JAGD-API-Server',
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 409 || response.status === 404) {
+            // Empty repository or not found - return empty array
+            console.log(`   ⚠️  ${member.name}: No commits found`);
+            return [];
+          }
+          console.error(`   ❌ ${member.name}: GitHub API returned ${response.status}`);
+          return [];
+        }
+
+        const commits = await response.json();
+        console.log(`   ✅ ${member.name} (@${member.github}): ${commits.length} commits`);
+
+        // Tag each commit with the team member info
+        return commits.map((commit) => ({
+          ...commit,
+          _teamMember: member,
+        }));
+      } catch (error) {
+        console.error(`   ❌ ${member.name}: ${error.message}`);
+        return [];
+      }
+    });
+
+    // Wait for all parallel requests to complete
+    const allCommitArrays = await Promise.all(fetchPromises);
+
+    // Flatten the arrays and sort by date (newest first)
+    const allCommits = allCommitArrays.flat().sort((a, b) => new Date(b.commit.author.date) - new Date(a.commit.author.date));
+
+    console.log(`📦 Total commits fetched: ${allCommits.length}`);
 
     const commits = allCommits;
 
-    // Process commits
-    const devLog = commits
-      .map((commit) => {
-        const authorName = commit.commit.author.name;
-        const authorEmail = commit.commit.author.email;
-        const commitDate = new Date(commit.commit.author.date);
-        const message = commit.commit.message.split('\n')[0];
+    // Process commits (already filtered by author, no need to search for team member)
+    const devLog = commits.map((commit) => {
+      const teamMember = commit._teamMember; // Already attached from parallel fetch
+      const commitDate = new Date(commit.commit.author.date);
+      const message = commit.commit.message.split('\n')[0];
 
-        // Find matching team member
-        const teamMember = teamMembers.find(
-          (m) =>
-            m.name.toLowerCase().includes(authorName.toLowerCase()) ||
-            authorName.toLowerCase().includes(m.name.split(' ')[0].toLowerCase()) ||
-            authorName.toLowerCase().includes(m.name.split(' ')[1]?.toLowerCase() || '') ||
-            (m.github && (authorEmail.toLowerCase().includes(m.github.toLowerCase()) || authorName.toLowerCase().includes(m.github.toLowerCase())))
-        );
+      // Infer commit type from message
+      let type = 'infra';
+      const lowerMessage = message.toLowerCase();
+      if (lowerMessage.startsWith('fix:') || lowerMessage.includes('fix') || lowerMessage.includes('bug')) {
+        type = 'fix';
+      } else if (lowerMessage.startsWith('feat:') || lowerMessage.includes('feature') || lowerMessage.includes('add')) {
+        type = 'feature';
+      } else if (lowerMessage.includes('design') || lowerMessage.includes('ui') || lowerMessage.includes('style')) {
+        type = 'design';
+      }
 
-        if (!teamMember) {
-          return null; // Skip non-team commits
-        }
+      // Calculate week (temporary, will be inverted)
+      const weekNumber = Math.ceil((Date.now() - commitDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
 
-        // Infer commit type
-        let type = 'infra';
-        const lowerMessage = message.toLowerCase();
-        if (lowerMessage.startsWith('fix:') || lowerMessage.includes('fix') || lowerMessage.includes('bug')) {
-          type = 'fix';
-        } else if (lowerMessage.startsWith('feat:') || lowerMessage.includes('feature') || lowerMessage.includes('add')) {
-          type = 'feature';
-        } else if (lowerMessage.includes('design') || lowerMessage.includes('ui') || lowerMessage.includes('style')) {
-          type = 'design';
-        }
-
-        // Calculate week (temporary, will be inverted)
-        const weekNumber = Math.ceil((Date.now() - commitDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-
-        return {
-          id: commit.sha.substring(0, 8),
-          date: commitDate.toISOString().split('T')[0],
-          weekNumber,
-          type,
-          content: message,
-          assignee: teamMember.name,
-          assigneeImg: getTeamMemberImage(teamMember.name),
-        };
-      })
-      .filter((entry) => entry !== null); // Get ALL team commits
+      return {
+        id: commit.sha.substring(0, 8),
+        date: commitDate.toISOString().split('T')[0],
+        weekNumber,
+        type,
+        content: message,
+        assignee: teamMember.name,
+        assigneeImg: getTeamMemberImage(teamMember.name),
+      };
+    });
 
     // Invert week numbers (Week 4 = most recent)
     const maxWeek = Math.max(...devLog.map((entry) => entry.weekNumber), 0);

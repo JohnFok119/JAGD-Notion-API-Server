@@ -465,25 +465,34 @@
 
             <div class="endpoint-card">
               <h3>💾 Repository Commits</h3>
-              <p style="color: #666; margin: 10px 0">ALL team commits (paginated)</p>
+              <p style="color: #666; margin: 10px 0">Author-filtered team commits (parallel, optimized)</p>
               <input
                 type="text"
                 id="githubRepo"
                 placeholder="owner/repo"
                 value="jagdteam/clicr"
+                style="margin-bottom: 10px"
+              />
+              <input
+                type="text"
+                id="githubSince"
+                placeholder="Since date (optional, e.g., 2024-01-01)"
+                style="margin-bottom: 10px"
               />
               <div
                 class="url-display"
                 style="margin-top: 10px"
               >
-                GET /api/github/commits?repo=...
+                GET /api/github/commits?repo=...&since=...
               </div>
-              <p style="color: #999; font-size: 0.85rem; margin-top: 5px">⚠️ May take longer for large repos</p>
+              <p style="color: #10b981; font-size: 0.85rem; margin-top: 5px">
+                ⚡ Perfect for CodeLens! Uses author filtering (no VSCode commits)
+              </p>
               <button
                 onclick="fetchGitHubCommits()"
                 id="githubCommitsBtn"
               >
-                Fetch All Commits
+                Fetch Commits
               </button>
             </div>
           </div>
@@ -572,8 +581,8 @@
           <h4 style="margin-top: 15px; color: #667eea">GitHub API</h4>
           <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8">
             <li><code>GET /api/github/test</code> - Test connection</li>
-            <li><code>GET /api/github/contributions?username=USER&months=N</code> - User contributions (optional months param)</li>
-            <li><code>GET /api/github/commits?repo=OWNER/REPO</code> - Repository commits (team filtered, paginated)</li>
+            <li><code>GET /api/github/contributions?username=USER&months=N</code> - User contributions (max 12 months)</li>
+            <li><code>GET /api/github/commits?repo=OWNER/REPO&since=DATE</code> - Repository commits (author-filtered, parallel)</li>
           </ul>
 
           <h4 style="margin-top: 15px; color: #667eea">LeetCode API</h4>
@@ -590,8 +599,10 @@
               <li>✅ <strong>Standardized Responses:</strong> <code>{ success, data/error }</code> format</li>
               <li>✅ <strong>Error Handling:</strong> Detailed error messages</li>
               <li>✅ <strong>Personal Tokens:</strong> GitHub supports per-user tokens for private data</li>
-              <li>✅ <strong>Automatic Pagination:</strong> GitHub commits endpoint fetches ALL commits automatically</li>
-              <li>✅ <strong>Flexible Timeframes:</strong> Contributions support custom date ranges or all-time data</li>
+              <li>✅ <strong>Author-Filtered Queries:</strong> Commits use parallel requests per team member (4 API calls vs 100+)</li>
+              <li>✅ <strong>Fork-Optimized:</strong> CodeLens only fetches team commits, not VSCode's entire history</li>
+              <li>✅ <strong>Date Filtering:</strong> Optional 'since' parameter for additional control</li>
+              <li>✅ <strong>Optimized Queries:</strong> Contributions limited to 12 months (GitHub API constraint)</li>
             </ul>
           </div>
 
@@ -816,9 +827,15 @@
       async function fetchGitHubCommits() {
         showLoading('githubCommitsBtn');
         const repo = document.getElementById('githubRepo').value;
+        const since = document.getElementById('githubSince').value;
 
         try {
-          const response = await fetch(`${API_BASE}/api/github/commits?repo=${repo}`);
+          let url = `${API_BASE}/api/github/commits?repo=${repo}`;
+          if (since) {
+            url += `&since=${since}`;
+          }
+
+          const response = await fetch(url);
           const data = await response.json();
 
           displayResult('githubResult', data, data.success);
