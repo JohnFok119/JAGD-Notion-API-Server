@@ -2,10 +2,13 @@
  * Vercel Serverless Function - Fetch Sprint/Epic/Ticket Data
  * Endpoint: /api/notion/sprints
  * 
- * Handles three-database structure where Issues have BOTH Sprint and Epic relations:
- * - Issues link directly to Sprints database
- * - Issues link directly to Epics database
- * - Returns nested hierarchy: Sprint → Epic → Tickets
+ * Database Schema:
+ * - Sprints: Name (title), Start Date (date), End Date (date), Status (status/select)
+ * - Epics: Name (title), Description (text), Status (status/select), Priority (select)
+ * - Issues: Issue (title), Status (status/select), Assignee (person), Story Points (number)
+ *           Sprints (relation), Epics (relation)
+ * 
+ * Returns nested hierarchy: Sprint → Epic → Tickets
  */
 
 const { Client } = require('@notionhq/client');
@@ -46,10 +49,10 @@ function extractDate(dateProperty) {
   return dateProperty.date.start || null;
 }
 
-// Helper to extract person name
+// Helper to extract all person names
 function extractPerson(personProperty) {
-  if (!personProperty?.people?.[0]) return null;
-  return personProperty.people[0].name || null;
+  if (!personProperty?.people || personProperty.people.length === 0) return [];
+  return personProperty.people.map(person => person.name).filter(name => name);
 }
 
 module.exports = async (req, res) => {
@@ -113,7 +116,7 @@ module.exports = async (req, res) => {
         id: page.id,
         name: extractText(props.Name),
         status: normalizeStatus(props.Status?.status?.name || props.Status?.select?.name),
-        description: extractText(props.Description),
+        description: extractText(props.Description), // Description is text type
         priority: props.Priority?.select?.name || null,
         tickets: [], // Will populate with tickets
       };
@@ -135,11 +138,10 @@ module.exports = async (req, res) => {
       // Build ticket object
       const ticket = {
         id: page.id,
-        name: extractText(props.Name || props.Title),
+        name: extractText(props.Issue), // Tickets use "Issue" column, not "Name"
         status: normalizeStatus(props.Status?.status?.name || props.Status?.select?.name),
-        description: extractText(props.Description),
-        assignee: extractPerson(props.Assignee || props.Assigned),
-        storyPoints: props['Story Points']?.number || props.Points?.number || null,
+        assignees: extractPerson(props['Assigned To']), // Array of assigned people (note: property name has a space)
+        storyPoints: props['Story Points']?.number || null, // Number type
       };
 
       // Add ticket to each sprint it belongs to
@@ -209,8 +211,7 @@ module.exports = async (req, res) => {
 
       return {
         id: sprintId,
-        name: extractText(props.Name || props.Title),
-        sprintNumber: props['Sprint Number']?.number || props.Number?.number || null,
+        name: extractText(props.Name), // Sprint name only, no separate sprint number column
         startDate: extractDate(props['Start Date']) || extractDate(props.Start),
         endDate: extractDate(props['End Date']) || extractDate(props.End),
         status: normalizeStatus(props.Status?.status?.name || props.Status?.select?.name),
@@ -218,9 +219,9 @@ module.exports = async (req, res) => {
       };
     });
 
-    // Sort sprints by sprint number
+    // Sort sprints by name (since there's no sprint number column)
     const sortedSprints = sprints.sort((a, b) => {
-      return (a.sprintNumber || 999) - (b.sprintNumber || 999);
+      return a.name.localeCompare(b.name);
     });
 
     console.log(`📦 Built ${sortedSprints.length} sprints with full hierarchy`);
