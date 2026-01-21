@@ -45,7 +45,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { repo, since } = req.query;
+    const { repo, since, refresh } = req.query;
 
     if (!repo) {
       return res.status(400).json({
@@ -236,9 +236,17 @@ module.exports = async (req, res) => {
 
     console.log(`✅ Processed ${finalDevLog.length} team commits for ${repo}`);
 
-    // Cache until midnight PST
-    const secondsUntilMidnight = getSecondsUntilMidnightPST();
-    res.setHeader('Cache-Control', `s-maxage=${secondsUntilMidnight}, must-revalidate`);
+    // Cache control - skip cache if refresh parameter present
+    if (refresh) {
+      console.log(`🔄 Refresh requested - skipping cache`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else {
+      // Cache until midnight PST
+      const secondsUntilMidnight = getSecondsUntilMidnightPST();
+      res.setHeader('Cache-Control', `s-maxage=${secondsUntilMidnight}, must-revalidate`);
+    }
 
     res.status(200).json({
       success: true,

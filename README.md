@@ -2,6 +2,26 @@
 
 Serverless API backend integrating multiple data sources: Notion, GitHub, and LeetCode.
 
+## 🔄 Cache Refresh Feature
+
+All endpoints support cache bypassing for manual data refresh. Add `?refresh=true` to any API call:
+
+```bash
+# Refresh Notion data
+GET /api/notion/sprints?projectSlug=CodeLens&refresh=true
+
+# Refresh GitHub data
+GET /api/github/commits?repo=jagdteam/clicr&refresh=true
+GET /api/github/contributions?username=giuseppi&refresh=true
+
+# Refresh LeetCode data
+GET /api/leetcode/stats?username=giuseppi&refresh=true
+```
+
+**Response:** Fresh data with `Cache-Control: no-cache` headers
+
+---
+
 ## 🚀 Quick Deploy to Vercel
 
 1. **Create new GitHub repo** for this backend (e.g., `jagd-notion-api`)
@@ -196,7 +216,7 @@ Fetch user's GitHub contributions.
 - `/api/github/contributions?username=giuseppi` - Last 12 months (default)
 - `/api/github/contributions?username=giuseppi&months=6` - Last 6 months only
 
-**Note:** 
+**Note:**
 - Uses personal tokens (`[USERNAME]_GITHUB_TOKEN`) if available for private contributions, falls back to org token
 - GitHub's contributionsCollection API has a maximum range of ~12 months
 - Requests exceeding 12 months are automatically capped

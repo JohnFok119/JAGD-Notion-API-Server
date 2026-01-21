@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { username, months } = req.query;
+    const { username, months, refresh } = req.query;
 
     if (!username) {
       return res.status(400).json({
@@ -153,9 +153,17 @@ module.exports = async (req, res) => {
 
     console.log(`✅ ${username}: ${totalContributions} total contributions, ${activeDays} active days`);
 
-    // Cache until midnight PST
-    const secondsUntilMidnight = getSecondsUntilMidnightPST();
-    res.setHeader('Cache-Control', `s-maxage=${secondsUntilMidnight}, must-revalidate`);
+    // Cache control - skip cache if refresh parameter present
+    if (refresh) {
+      console.log(`🔄 Refresh requested - skipping cache`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else {
+      // Cache until midnight PST
+      const secondsUntilMidnight = getSecondsUntilMidnightPST();
+      res.setHeader('Cache-Control', `s-maxage=${secondsUntilMidnight}, must-revalidate`);
+    }
 
     res.status(200).json({
       success: true,

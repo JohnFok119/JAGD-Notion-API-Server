@@ -69,7 +69,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { projectSlug } = req.query;
+    const { projectSlug, refresh } = req.query;
 
     // Database ID mapping for different projects
     const DATABASE_MAP = {
@@ -231,9 +231,17 @@ module.exports = async (req, res) => {
 
     console.log(`📦 Built ${sortedSprints.length} sprints with full hierarchy`);
 
-    // Cache until midnight PST
-    const secondsUntilMidnight = getSecondsUntilMidnightPST();
-    res.setHeader('Cache-Control', `s-maxage=${secondsUntilMidnight}, must-revalidate`);
+    // Cache control - skip cache if refresh parameter present
+    if (refresh) {
+      console.log(`🔄 Refresh requested - skipping cache`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else {
+      // Cache until midnight PST
+      const secondsUntilMidnight = getSecondsUntilMidnightPST();
+      res.setHeader('Cache-Control', `s-maxage=${secondsUntilMidnight}, must-revalidate`);
+    }
 
     res.status(200).json({
       success: true,
