@@ -2,7 +2,7 @@
 
 Serverless API backend integrating multiple data sources: Notion, GitHub, and LeetCode.
 
-## 🔄 Cache Refresh Feature
+## 🔄 Cache Refresh Features
 
 All endpoints support cache bypassing for manual data refresh. Add `?refresh=true` to any API call:
 
