@@ -59,7 +59,7 @@ GET /api/leetcode/stats?username=giuseppi&refresh=true
 
 1. **Install dependencies**:
    ```bash
-   npm install
+   npm install 
    ```
 
 2. **Create `.env.local`** (see `ENV_TEMPLATE.md` for details):
