@@ -89,7 +89,7 @@ GET /api/leetcode/stats?username=giuseppi&refresh=true
 
 ## 📡 API Endpoints
 
-### Notion API
+### Notion API Setup
 
 #### GET `/api/notion/test`
 Test connection to Notion database.
